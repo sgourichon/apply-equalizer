@@ -100,18 +100,9 @@ burstState = State.Clear
 def end_burst():
 	""" apply last detected port change after some elapsed time """
 	global burstState
-	print ("queue drained!")
-	if burstState == State.EventOccurred:
-		print ("event occurred, wait a bit...")
-		burstState = State.End
-		# give the event queue some time to collect more events
-		sleep(debounceTime/1000)
-		return True
-	elif burstState == State.End:
-		print ("now apply")
-		apply_port_change(lastPortAddr)
-		burstState = State.Clear
-		return False
+	apply_port_change(lastPortAddr)
+	burstState = State.Clear
+	return False
 
 
 lastPortAddr=None
