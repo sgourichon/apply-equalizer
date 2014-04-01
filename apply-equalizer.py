@@ -13,8 +13,6 @@ config_dir = os.path.join(xdg_config_home, 'apply-equalizer')
 if not os.path.isdir(config_dir):
 	os.mkdir(config_dir)
 
-debounceTime = 600 # milliseconds
-
 eq_config_path = os.path.join(xdg_config_home, 'pulse', 'equalizerrc')
 
 def get_bus_address():
@@ -93,27 +91,25 @@ def on_disconnect (con):
 	print ('disconnected from pulseaudio, try to reconnect...')
 	init()
 	
-class State:
-	Clear, EventOccurred, End = range(3)
+pendingChange=False
+requestedPortAddr=None
 
-burstState = State.Clear
-def end_burst():
-	""" apply last detected port change after some elapsed time """
-	global burstState
-	apply_port_change(lastPortAddr)
-	burstState = State.Clear
-	return False
-
-
-lastPortAddr=None
 def on_port_change(port_addr):
 	""" save last port change """
-	global burstState, lastPortAddr
-	if burstState == State.Clear:
-		GObject.idle_add(end_burst)
-	burstState = State.EventOccurred
-	lastPortAddr = port_addr
-	
+	print ('on_port_change: received event from pulseaudio')
+	global requestedPortAddr, pendingChange
+	requestedPortAddr = port_addr
+	if pendingChange == False:
+		GObject.idle_add(apply_requested_port_change)
+		pendingChange = True
+
+def apply_requested_port_change():
+	global requestedPortAddr
+	print ('apply_requested_port_change: {}'.format(requestedPortAddr))
+	apply_port_change(requestedPortAddr)
+	global pendingChange
+	pendingChange = False
+	return False
 
 def apply_port_change(port_addr):
 	sink_addr = os.path.dirname(port_addr)
